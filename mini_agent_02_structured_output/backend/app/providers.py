@@ -115,10 +115,34 @@ def generate_gemini(system_prompt: str, message: str) -> ProviderResult:
     )
 
 
+def _gemini_response_json_schema(model_class: type[TravelPlan] | type[SupportTicket]) -> dict[str, Any]:
+    """Return the JSON Schema form accepted by Gemini's raw-schema field.
+
+    Pydantic emits ``additionalProperties: false`` for models configured with
+    ``extra=\"forbid\"``.  That keyword is valid JSON Schema, but is not a
+    field in Gemini's legacy ``response_schema`` proto and becomes the invalid
+    ``additional_properties`` field in the API request.  Extra fields remain
+    forbidden when the response is validated with Pydantic below.
+    """
+    def without_additional_properties(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: without_additional_properties(item)
+                for key, item in value.items()
+                if key not in {"additionalProperties", "additional_properties"}
+            }
+        if isinstance(value, list):
+            return [without_additional_properties(item) for item in value]
+        return value
+
+    return without_additional_properties(model_class.model_json_schema())
+
+
 def generate_structured_gemini(
     system_prompt: str, message: str, schema_type: StructuredSchemaName
 ) -> ProviderResult:
     client, types = _gemini_client()
+    model_class = get_structured_model(schema_type)
     started = perf_counter()
     response = client.models.generate_content(
         model=settings.gemini_model,
@@ -126,10 +150,13 @@ def generate_structured_gemini(
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
             response_mime_type="application/json",
-            response_schema=get_structured_model(schema_type),
+            # ``response_schema`` converts Pydantic's additionalProperties
+            # into the unsupported proto field ``additional_properties``.
+            # Send the cleaned raw JSON Schema through its dedicated field.
+            response_json_schema=_gemini_response_json_schema(model_class),
         ),
     )
-    parsed = get_structured_model(schema_type).model_validate_json(response.text or "{}")
+    parsed = model_class.model_validate_json(response.text or "{}")
     return ProviderResult(
         "gemini", settings.gemini_model, parsed.model_dump(),
         round((perf_counter() - started) * 1000),

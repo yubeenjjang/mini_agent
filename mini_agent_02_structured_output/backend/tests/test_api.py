@@ -30,6 +30,14 @@ def test_openapi_exposes_generic_structured_route_only() -> None:
     assert "/api/structured/travel-plan" not in paths
 
 
+def test_openapi_separates_unit_01_and_02_tags() -> None:
+    openapi = client.get("/openapi.json").json()
+    assert openapi["paths"]["/api/generate"]["post"]["tags"] == ["01 · LLM"]
+    assert openapi["paths"]["/api/structured/generate"]["post"]["tags"] == [
+        "02 · Structured Output"
+    ]
+
+
 def test_prompt_preview_keeps_four_sections() -> None:
     response = client.post("/api/prompts/preview", json={
         "role": "여행 도우미", "instruction": "정보 추출", "context": "국내 여행", "constraint": "추측 금지"
