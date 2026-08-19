@@ -1,9 +1,15 @@
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
 from app.config import settings
+from app.map_travel.mock_data import create_mock_map_travel
+from app.map_travel.schemas import MapTravelContent
 from app.schemas import StructuredSchemaName, SupportTicket, TravelPlan
+
+
+ProviderStructuredSchemaName: TypeAlias = StructuredSchemaName | Literal["map_travel"]
+StructuredModel: TypeAlias = type[TravelPlan] | type[SupportTicket] | type[MapTravelContent]
 
 
 @dataclass
@@ -21,14 +27,23 @@ def generate_mock(system_prompt: str, message: str) -> ProviderResult:
 
 
 def get_structured_model(
-    schema_type: StructuredSchemaName,
-) -> type[TravelPlan] | type[SupportTicket]:
-    return {"travel_plan": TravelPlan, "support_ticket": SupportTicket}[schema_type]
+    schema_type: ProviderStructuredSchemaName,
+) -> StructuredModel:
+    return {
+        "travel_plan": TravelPlan,
+        "support_ticket": SupportTicket,
+        "map_travel": MapTravelContent,
+    }[schema_type]
 
 
 def generate_structured_mock(
-    system_prompt: str, message: str, schema_type: StructuredSchemaName
+    system_prompt: str, message: str, schema_type: ProviderStructuredSchemaName
 ) -> ProviderResult:
+    if schema_type == "map_travel":
+        content = create_mock_map_travel(message)
+        return ProviderResult(
+            "mock", "deterministic-map-travel-mock", content.model_dump(), 0
+        )
     if schema_type == "support_ticket":
         category = (
             "billing"
@@ -78,7 +93,7 @@ def generate_openai(system_prompt: str, message: str) -> ProviderResult:
 
 
 def generate_structured_openai(
-    system_prompt: str, message: str, schema_type: StructuredSchemaName
+    system_prompt: str, message: str, schema_type: ProviderStructuredSchemaName
 ) -> ProviderResult:
     if not settings.openai_api_key:
         raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
@@ -115,7 +130,7 @@ def generate_gemini(system_prompt: str, message: str) -> ProviderResult:
     )
 
 
-def _gemini_response_json_schema(model_class: type[TravelPlan] | type[SupportTicket]) -> dict[str, Any]:
+def _gemini_response_json_schema(model_class: StructuredModel) -> dict[str, Any]:
     """Return the JSON Schema form accepted by Gemini's raw-schema field.
 
     Pydantic emits ``additionalProperties: false`` for models configured with
@@ -139,7 +154,7 @@ def _gemini_response_json_schema(model_class: type[TravelPlan] | type[SupportTic
 
 
 def generate_structured_gemini(
-    system_prompt: str, message: str, schema_type: StructuredSchemaName
+    system_prompt: str, message: str, schema_type: ProviderStructuredSchemaName
 ) -> ProviderResult:
     client, types = _gemini_client()
     model_class = get_structured_model(schema_type)
@@ -206,7 +221,7 @@ def generate_ollama(system_prompt: str, message: str) -> ProviderResult:
 
 
 def generate_structured_ollama(
-    system_prompt: str, message: str, schema_type: StructuredSchemaName
+    system_prompt: str, message: str, schema_type: ProviderStructuredSchemaName
 ) -> ProviderResult:
     started = perf_counter()
     model_class = get_structured_model(schema_type)
@@ -234,7 +249,7 @@ def generate_structured(
     provider: str,
     system_prompt: str,
     message: str,
-    schema_type: StructuredSchemaName = "travel_plan",
+    schema_type: ProviderStructuredSchemaName = "travel_plan",
 ) -> ProviderResult:
     handlers = {
         "mock": generate_structured_mock,
