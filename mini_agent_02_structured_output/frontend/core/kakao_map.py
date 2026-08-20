@@ -34,7 +34,11 @@ def build_kakao_map_html(landmarks: list[dict[str, Any]], foods: list[dict[str, 
         return "<p class='map-message'>지도에 표시할 유효한 좌표가 없습니다.</p>"
 
     places_json = json.dumps(places, ensure_ascii=False).replace("</", "<\\/")
-    sdk_url = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + quote(app_key, safe="")
+    sdk_url = (
+        "https://dapi.kakao.com/v2/maps/sdk.js?appkey="
+        + quote(app_key, safe="")
+        + "&autoload=false"
+    )
     return f"""
 <!doctype html>
 <html lang="ko">
@@ -68,10 +72,8 @@ def build_kakao_map_html(landmarks: list[dict[str, Any]], foods: list[dict[str, 
       );
     }}
 
-    try {{
-      if (!window.kakao || !kakao.maps) {{
-        throw new Error('Kakao Maps SDK를 불러오지 못했습니다. 도메인과 JavaScript 키를 확인하세요.');
-      }}
+    function initializeMap() {{
+      try {{
       const first = places[0];
       const map = new kakao.maps.Map(mapElement, {{
         center: new kakao.maps.LatLng(first.latitude, first.longitude),
@@ -99,8 +101,15 @@ def build_kakao_map_html(landmarks: list[dict[str, Any]], foods: list[dict[str, 
         bounds.extend(position);
       }});
       if (places.length > 1) map.setBounds(bounds);
-    }} catch (error) {{
-      showError(error.message || '카카오맵을 초기화하지 못했습니다.');
+      }} catch (error) {{
+        showError(error.message || '카카오맵을 초기화하지 못했습니다.');
+      }}
+    }}
+
+    if (!window.kakao || !kakao.maps || typeof kakao.maps.load !== 'function') {{
+      showError('Kakao Maps SDK를 불러오지 못했습니다. 도메인과 JavaScript 키를 확인하세요.');
+    }} else {{
+      kakao.maps.load(initializeMap);
     }}
   </script>
 </body>
