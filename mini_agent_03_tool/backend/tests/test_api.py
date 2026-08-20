@@ -8,6 +8,18 @@ from app.main import app
 client = TestClient(app)
 
 
+def test_openapi_groups_endpoints_by_learning_unit() -> None:
+    schema = client.get("/openapi.json").json()
+    assert [tag["name"] for tag in schema["tags"]] == [
+        "01. LLM",
+        "02. Structured Output",
+        "03. Tool Use",
+    ]
+    assert schema["paths"]["/api/generate"]["post"]["tags"] == ["01. LLM"]
+    assert schema["paths"]["/api/structured/travel-plan"]["post"]["tags"] == ["02. Structured Output"]
+    assert schema["paths"]["/api/tools/complete"]["post"]["tags"] == ["03. Tool Use"]
+
+
 def test_health_and_mock_default() -> None:
     response = client.get("/health")
     assert response.status_code == 200
