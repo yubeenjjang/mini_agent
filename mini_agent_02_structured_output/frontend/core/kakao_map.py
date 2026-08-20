@@ -1,4 +1,3 @@
-import html
 import json
 import os
 from pathlib import Path
@@ -39,6 +38,7 @@ def build_kakao_map_html(landmarks: list[dict[str, Any]], foods: list[dict[str, 
         + quote(app_key, safe="")
         + "&autoload=false"
     )
+    sdk_url_json = json.dumps(sdk_url)
     return f"""
 <!doctype html>
 <html lang="ko">
@@ -53,9 +53,9 @@ def build_kakao_map_html(landmarks: list[dict[str, Any]], foods: list[dict[str, 
 </head>
 <body>
   <div id="map"></div>
-  <script src="{html.escape(sdk_url, quote=True)}"></script>
   <script>
     const places = {places_json};
+    const sdkUrl = {sdk_url_json};
     const mapElement = document.getElementById('map');
 
     function showError(message) {{
@@ -106,11 +106,20 @@ def build_kakao_map_html(landmarks: list[dict[str, Any]], foods: list[dict[str, 
       }}
     }}
 
-    if (!window.kakao || !kakao.maps || typeof kakao.maps.load !== 'function') {{
-      showError('Kakao Maps SDK를 불러오지 못했습니다. 도메인과 JavaScript 키를 확인하세요.');
-    }} else {{
+    const sdk = document.createElement('script');
+    sdk.src = sdkUrl;
+    sdk.async = true;
+    sdk.onload = () => {{
+      if (!window.kakao || !kakao.maps || typeof kakao.maps.load !== 'function') {{
+        showError('Kakao Maps SDK를 불러오지 못했습니다. 도메인과 JavaScript 키를 확인하세요.');
+        return;
+      }}
       kakao.maps.load(initializeMap);
-    }}
+    }};
+    sdk.onerror = () => {{
+      showError('Kakao Maps SDK를 불러오지 못했습니다. 네트워크와 도메인 설정을 확인하세요.');
+    }};
+    document.head.appendChild(sdk);
   </script>
 </body>
 </html>
