@@ -1,3 +1,5 @@
+import base64
+import json
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -8,6 +10,21 @@ from app.providers import ProviderResult
 
 
 client = TestClient(app)
+
+
+def _map_places_payload() -> str:
+    places = [
+        {
+            "kind": "landmark",
+            "name": "해운대해수욕장",
+            "description": "해변 산책",
+            "latitude": 35.1587,
+            "longitude": 129.1604,
+        }
+    ]
+    return base64.urlsafe_b64encode(
+        json.dumps(places, ensure_ascii=False).encode("utf-8")
+    ).decode("ascii").rstrip("=")
 
 
 def test_map_travel_mock_returns_contract() -> None:
@@ -108,6 +125,28 @@ def test_openapi_exposes_map_travel_contract() -> None:
     assert operation["responses"]["200"]["content"]["application/json"][
         "schema"
     ]["$ref"].endswith("/MapTravelResponse")
+
+
+def test_map_embed_is_served_as_html_from_backend_origin(monkeypatch) -> None:
+    monkeypatch.setenv("KAKAO_MAP_JAVASCRIPT_KEY", "test-javascript-key")
+
+    response = client.get(
+        "/api/structured/map-travel/map", params={"places": _map_places_payload()}
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "https://dapi.kakao.com/v2/maps/sdk.js?appkey=test-javascript-key" in response.text
+    assert '"latitude": 35.1587' in response.text
+    assert "new kakao.maps.LatLng(place.latitude, place.longitude)" in response.text
+
+
+def test_map_embed_rejects_invalid_place_payload() -> None:
+    response = client.get(
+        "/api/structured/map-travel/map", params={"places": "not-valid-payload"}
+    )
+
+    assert response.status_code == 422
 
 
 def test_existing_routes_remain_available() -> None:

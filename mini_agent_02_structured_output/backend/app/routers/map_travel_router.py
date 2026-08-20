@@ -1,15 +1,25 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import ValidationError
 
 from app.map_travel.provider_service import (
     MapTravelOutputValidationError,
     MapTravelProviderError,
 )
+from app.map_travel.map_embed import build_map_html, decode_places
 from app.map_travel.schemas import MapTravelRequest, MapTravelResponse
 from app.map_travel.service import create_map_travel
 
 
 map_travel_router = APIRouter(tags=["02 · Structured Output"])
+
+
+@map_travel_router.get("/api/structured/map-travel/map", response_class=HTMLResponse)
+def render_map(places: str = Query(min_length=2, max_length=12000)) -> HTMLResponse:
+    try:
+        return HTMLResponse(build_map_html(decode_places(places)))
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @map_travel_router.post(

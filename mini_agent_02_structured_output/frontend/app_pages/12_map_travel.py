@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 
 from clients.map_travel_client import generate_map_travel
 from core.api_client import BackendAPIError
-from core.kakao_map import build_kakao_map_html, get_kakao_map_key
+from core.kakao_map import build_kakao_map_url
 
 
 st.title("🗺️ Kakao Map Travel")
@@ -42,11 +42,8 @@ if result:
     st.write(content.get("summary", ""))
 
     st.subheader("카카오맵")
-    if get_kakao_map_key():
-        components.html(build_kakao_map_html(landmarks, foods), height=460, scrolling=False)
-        st.caption("파란 마커는 관광지, 주황 마커는 음식 추천입니다.")
-    else:
-        st.warning("카카오맵 JavaScript 키가 설정되지 않았습니다. 장소 목록은 계속 확인할 수 있습니다.")
+    components.iframe(build_kakao_map_url(landmarks, foods), height=460, scrolling=False)
+    st.caption("파란 마커는 관광지, 주황 마커는 음식 추천입니다.")
 
     st.subheader("추천 관광지")
     if landmarks:
