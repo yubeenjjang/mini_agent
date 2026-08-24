@@ -19,7 +19,7 @@ WEATHER_CODES = {
     81: "소나기", 82: "강한 소나기", 95: "뇌우",
 }
 
-#맨 앞에 _면 내부에서만 사용하는 함수
+
 def _get(path: str, params: dict[str, Any], *, geocoding: bool = False) -> dict:
     base_url = settings.open_meteo_geocoding_url if geocoding else settings.open_meteo_base_url
     response = httpx.get(f"{base_url}{path}", params=params, timeout=settings.request_timeout_seconds)
