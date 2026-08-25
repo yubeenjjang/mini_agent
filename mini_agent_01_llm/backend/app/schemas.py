@@ -83,6 +83,23 @@ class TravelImageAnalysis(BaseModel):
     safety_notes: list[str] = Field(default_factory=list, max_length=10)
 
 
+class VideoFrameObservation(BaseModel):
+    timestamp_seconds: float = Field(ge=0)
+    summary: str = Field(min_length=1, max_length=500)
+
+
+class VideoAnalysis(BaseModel):
+    summary: str = Field(min_length=1, max_length=1000)
+    objects: list[str] = Field(default_factory=list, max_length=20)
+    visible_text: list[str] = Field(default_factory=list, max_length=20)
+    safety_notes: list[str] = Field(default_factory=list, max_length=10)
+    frame_observations: list[VideoFrameObservation] = Field(
+        default_factory=list, max_length=10
+    )
+    changes_over_time: list[str] = Field(default_factory=list, max_length=10)
+    speech_text: str = Field(min_length=1, max_length=2000)
+
+
 class TtsRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     voice: Literal[

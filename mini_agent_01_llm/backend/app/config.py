@@ -27,6 +27,14 @@ class Settings:
     max_audio_size_mb: int = int(os.getenv("MAX_AUDIO_SIZE_MB", "10"))
       
     max_image_size_mb: int = int(os.getenv("MAX_IMAGE_SIZE_MB", "5"))
+    max_video_size_mb: int = int(os.getenv("MAX_VIDEO_SIZE_MB", "50"))
+    max_video_duration_seconds: int = int(
+        os.getenv("MAX_VIDEO_DURATION_SECONDS", "120")
+    )
+    video_analysis_frame_count: int = int(
+        os.getenv("VIDEO_ANALYSIS_FRAME_COUNT", "6")
+    )
+    max_video_frame_count: int = int(os.getenv("MAX_VIDEO_FRAME_COUNT", "10"))
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     gemini_model: str = os.getenv("GEMINI_MODEL", "")
     ollama_base_url: str = os.getenv(

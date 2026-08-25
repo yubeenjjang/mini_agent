@@ -11,6 +11,10 @@ llm_page = st.Page("app_pages/05_llm.py", title="LLM 호출")
 compare_page = st.Page("app_pages/06_provider_compare.py", title="Provider 비교")
 image_page = st.Page("app_pages/07_image_analysis.py", title="이미지 분석")
 tts_page = st.Page("app_pages/08_tts.py", title="음성 생성")
+camera_voice_page = st.Page(
+    "app_pages/09_camera_voice_guide.py",
+    title="카메라·영상 음성 안내",
+)
 
 speech_translation_page = st.Page(
     "app_pages/10_speech_translation.py",
@@ -28,6 +32,7 @@ navigation = st.navigation(
         compare_page,
         image_page,
         tts_page,
+        camera_voice_page,
         speech_translation_page,
     ],
     position="hidden",
@@ -46,6 +51,7 @@ with st.sidebar:
         st.page_link(compare_page, label="1-4. Provider 비교")
         st.page_link(image_page, label="1-5. 이미지 분석")
         st.page_link(tts_page, label="1-6. 음성 생성")
+        st.page_link(camera_voice_page, label="1-7. 카메라·영상 음성 안내")
         st.page_link(speech_translation_page, label="1-8. 음성 번역")
 
     st.divider()
