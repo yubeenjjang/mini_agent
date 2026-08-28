@@ -13,6 +13,7 @@ from mcp.client.streamable_http import streamable_http_client
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
+#JSON 파일을 코드에 넣은 것
 MCP_SERVERS: dict[str, dict[str, Any]] = {
     "travel": {
         "transport": "streamable-http",
@@ -23,6 +24,19 @@ MCP_SERVERS: dict[str, dict[str, Any]] = {
         "command": sys.executable,
         "args": [str(PROJECT_ROOT / "mcp_server" / "policy_stdio_server.py")],
     },
+     "health": {
+        "transport": "streamable-http",
+        "url": os.getenv(
+            "HEALTH_MCP_URL",
+            "http://192.168.1.12:8011/mcp",
+        ),
+    },
+    
+    "tour": {
+        "transport": "streamable-http",
+        "url": "http://192.168.1.12:8033/mcp",
+    }
+
 }
 
 
