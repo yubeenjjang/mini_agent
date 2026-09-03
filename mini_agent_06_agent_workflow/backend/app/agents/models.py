@@ -1,3 +1,5 @@
+#ai agent의 명세서 역할
+
 from dataclasses import dataclass
 
 

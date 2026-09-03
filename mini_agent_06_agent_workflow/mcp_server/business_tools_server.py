@@ -14,6 +14,7 @@ MCP_PORT = int(os.getenv("MCP_PORT", "8010"))
 
 mcp = FastMCP(
     "mini-agent-06-business-tools",
+    #중요
     instructions="여행, 고객 지원과 주문 도우미 Agent가 사용하는 교육용 Tool Server입니다.",
     host=MCP_HOST,
     port=MCP_PORT,
@@ -33,9 +34,11 @@ PRODUCTS = {
     "P-MOUSE": {"name": "무선 마우스", "price": 28_000, "stock": 0},
 }
 
-
-@mcp.tool()
-def get_weather(city: str) -> dict:
+@mcp.tool() 
+def recommend_by_budget(max_price : int) -> dict:
+    """예산 이하로 구매가능한 상품을 조회합니다."""
+    max_price = max_price.strip()
+    data = PRODUCTS.get(max_price)
     """한국 도시의 현재 날씨를 조회합니다."""
     city = city.strip()
     data = WEATHER.get(city)
@@ -94,6 +97,32 @@ def search_product(query: str) -> dict:
 
 
 @mcp.tool()
+def recommend_product_by_budget(max_price: int) -> dict:
+    """사용자 예산 이하이면서 재고가 있는 상품을 추천합니다."""
+    if max_price < 1:
+        return {"success": False,"max_price": max_price,"error": "INVALID_BUDGET","items": [],}
+
+    items = []
+
+    for product_id, data in PRODUCTS.items():
+        if data["price"] <= max_price and data["stock"] > 0:
+            items.append(
+                {
+                    "product_id": product_id,
+                    "name": data["name"],
+                    "price": data["price"],
+                    "stock": data["stock"],
+                }
+            )
+
+    return {
+        "success": True,
+        "max_price": max_price,
+        "items": items,
+    }
+
+
+@mcp.tool()
 def check_inventory(product_id: str) -> dict:
     """상품 ID로 현재 주문 가능한 재고를 확인합니다."""
     product_id = product_id.strip().upper()
@@ -121,6 +150,9 @@ def calculate_order_total(product_id: str, quantity: int) -> dict:
         "unit_price": data["price"],
         "total": data["price"] * quantity,
     }
+
+
+
 
 
 if __name__ == "__main__":

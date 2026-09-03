@@ -7,7 +7,6 @@ from app.core.config import MAX_AGENT_STEPS, OPENAI_MODEL
 from app.mcp.client import call_tool, discover_tools
 from app.providers.openai import create_client, first_response, next_response
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -31,12 +30,18 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
         discovered_names = {tool["name"] for tool in tools}
         missing = profile.allowed_tools - discovered_names
         if missing:
-            raise RuntimeError(f"MCP Server에 필요한 Tool이 없습니다: {sorted(missing)}")
+            raise RuntimeError(
+                f"MCP Server에 필요한 Tool이 없습니다: {sorted(missing)}"
+            )
         state["trace"].append(
             {"owner": "runtime", "stage": "agent_started", "agent": profile.agent_id}
         )
         state["trace"].append(
-            {"owner": "mcp", "stage": "tools_discovered", "tools": sorted(discovered_names)}
+            {
+                "owner": "mcp",
+                "stage": "tools_discovered",
+                "tools": sorted(discovered_names),
+            }
         )
         client = create_client()
     except Exception as error:
@@ -44,7 +49,11 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
         state["status"] = "failed"
         state["termination_reason"] = "startup_error"
         state["trace"].append(
-            {"owner": "runtime", "stage": "startup_error", "error_code": "AGENT_STARTUP_FAILED"}
+            {
+                "owner": "runtime",
+                "stage": "startup_error",
+                "error_code": "AGENT_STARTUP_FAILED",
+            }
         )
         return state
 
@@ -56,7 +65,12 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
         state["status"] = "failed"
         state["termination_reason"] = "model_error"
         state["trace"].append(
-            {"step": 0, "owner": "runtime", "stage": "model_error", "error_code": "MODEL_REQUEST_FAILED"}
+            {
+                "step": 0,
+                "owner": "runtime",
+                "stage": "model_error",
+                "error_code": "MODEL_REQUEST_FAILED",
+            }
         )
         return state
 
@@ -67,7 +81,12 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
             state["termination_reason"] = "model_finished"
             state["answer"] = response.output_text
             state["trace"].append(
-                {"step": step, "owner": "ai_agent", "stage": "model_final_answer", "text": response.output_text}
+                {
+                    "step": step,
+                    "owner": "ai_agent",
+                    "stage": "model_final_answer",
+                    "text": response.output_text,
+                }
             )
             return state
 
@@ -78,10 +97,22 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
                 if not isinstance(arguments, dict):
                     raise ValueError("Tool arguments는 JSON Object여야 합니다.")
                 state["trace"].append(
-                    {"step": step, "owner": "ai_agent", "stage": "model_selected_tool", "tool": call.name}
+                    {
+                        "step": step,
+                        "owner": "ai_agent",
+                        "stage": "model_selected_tool",
+                        "tool": call.name,
+                    }
                 )
-                result, trace = await call_tool(call.name, arguments, profile.allowed_tools)
-            except (AttributeError, json.JSONDecodeError, TypeError, ValueError) as error:
+                result, trace = await call_tool(
+                    call.name, arguments, profile.allowed_tools
+                )
+            except (
+                AttributeError,
+                json.JSONDecodeError,
+                TypeError,
+                ValueError,
+            ) as error:
                 logger.warning(
                     "잘못된 Tool Call: agent_id=%s tool=%s error=%s",
                     profile.agent_id,
@@ -126,13 +157,19 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
                 }
             )
             state["tool_calls"] += 1
-            state["trace"].append({"step": step, "owner": "mcp", "stage": "tool_executed", **trace})
+            state["trace"].append(
+                {"step": step, "owner": "mcp", "stage": "tool_executed", **trace}
+            )
 
         try:
-            response = await next_response(client, response.id, outputs, profile.instructions, tools)
+            response = await next_response(
+                client, response.id, outputs, profile.instructions, tools
+            )
             state["llm_calls"] += 1
         except Exception:
-            logger.exception("후속 Model 호출 실패: agent_id=%s step=%s", profile.agent_id, step)
+            logger.exception(
+                "후속 Model 호출 실패: agent_id=%s step=%s", profile.agent_id, step
+            )
             state["status"] = "failed"
             state["termination_reason"] = "model_error"
             state["trace"].append(
@@ -156,7 +193,7 @@ async def run_single_agent(profile: AgentProfile, question: str) -> dict[str, An
             {
                 "step": MAX_AGENT_STEPS + 1,
                 "owner": "ai_agent",
-                "stage": "model_final_answer",
+                "stage": "",
                 "text": response.output_text,
             }
         )
