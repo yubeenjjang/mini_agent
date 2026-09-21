@@ -104,4 +104,24 @@ jobs:
           AWS_HOST: ${{ secrets.AWS_HOST }}
           AWS_USER: ${{ secrets.AWS_USER }}
         run: |
-          ssh "$AWS_USER@$AWS_HOST" 'cd ~/mini-agent-01-llm && test -f .env && docker compose config --quiet && docker compose up -d --build && curl --fail --retry 12 --retry-delay 5 http://127.0.0.1:8000/health'
+          ssh "$AWS_USER@$AWS_HOST" '
+            set -e
+            cd ~/mini-agent-01-llm
+            test -f .env
+            docker compose config --quiet
+            docker compose up -d --build
+
+            if ! curl \
+              --fail \
+              --retry 12 \
+              --retry-delay 5 \
+              --retry-all-errors \
+              --connect-timeout 5 \
+              --max-time 10 \
+              http://127.0.0.1:8000/health
+            then
+              docker compose ps
+              docker compose logs --tail=200 backend
+              exit 1
+            fi
+          '
