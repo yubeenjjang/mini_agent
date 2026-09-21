@@ -57,9 +57,9 @@ jobs:
           GEMINI_API_KEY: ""
         run: python -m pytest tests -q
 
-      # .env는 저장소에 포함하지 않으므로 Compose 구조 검사용 안전한 값을 만듭니다.
-      - name: Create CI environment file
-        run: cp .env.example .env
+      # 실제 .env.docker는 저장소에 포함하지 않으므로 예제 파일로 CI 설정을 만듭니다.
+      - name: Create CI Docker environment file
+        run: cp .env.docker.example .env.docker
 
       - name: Validate Compose
         run: docker compose config --quiet
@@ -107,7 +107,9 @@ jobs:
           ssh "$AWS_USER@$AWS_HOST" '
             set -e
             cd ~/mini-agent-01-llm
-            test -f .env
+            if [ ! -f .env.docker ]; then
+              cp .env.docker.example .env.docker
+            fi
             docker compose config --quiet
             docker compose up -d --build
 
