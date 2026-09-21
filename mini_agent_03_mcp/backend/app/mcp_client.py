@@ -1,42 +1,29 @@
 import os
-import sys
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
-#JSON 파일을 코드에 넣은 것
+# Compose 내부에서는 MCP 서비스 이름을 DNS 주소로 사용한다.
 MCP_SERVERS: dict[str, dict[str, Any]] = {
     "travel": {
         "transport": "streamable-http",
-        "url": os.getenv("TRAVEL_MCP_URL", "http://127.0.0.1:8010/mcp"),
+        "url": os.getenv("TRAVEL_MCP_URL", "http://mcp_server1:8010/mcp"),
     },
     "policy": {
-        "transport": "stdio",
-        "command": sys.executable,
-        "args": [str(PROJECT_ROOT / "mcp_server" / "policy_stdio_server.py")],
-    },
-     "health": {
         "transport": "streamable-http",
         "url": os.getenv(
-            "HEALTH_MCP_URL",
-            "http://192.168.1.12:8011/mcp",
+            "POLICY_MCP_URL",
+            "http://mcp_server2:8011/mcp",
         ),
     },
-    
-    "tour": {
-        "transport": "streamable-http",
-        "url": "http://192.168.1.12:8033/mcp",
-    }
-
 }
 
 
@@ -50,15 +37,6 @@ async def open_session(
     if transport == "streamable-http":
         read_stream, write_stream, _ = await stack.enter_async_context(
             streamable_http_client(config["url"])
-        )
-    elif transport == "stdio":
-        parameters = StdioServerParameters(
-            command=config["command"],
-            args=config.get("args", []),
-            env=config.get("env"),
-        )
-        read_stream, write_stream = await stack.enter_async_context(
-            stdio_client(parameters)
         )
     else:
         raise ValueError(f"지원하지 않는 MCP Transport입니다: {transport}")

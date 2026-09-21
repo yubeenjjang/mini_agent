@@ -5,9 +5,8 @@ from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 
-# #  IPv4 주소 . . . . . . . . . : 192.168.1.12
-# MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
-MCP_HOST = os.getenv("MCP_HOST", "192.168.1.12")
+# 컨테이너 밖(Backend Container 포함)에서도 접근할 수 있게 모든 인터페이스에 바인딩한다.
+MCP_HOST = os.getenv("MCP_HOST", "0.0.0.0")
 MCP_PORT = int(os.getenv("MCP_PORT", "8010"))
 
 mcp = FastMCP(
